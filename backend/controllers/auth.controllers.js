@@ -128,13 +128,9 @@ export const check = async (req, res) => {
       }
   
       res.status(200).json({
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          image: user.image,
-        },
+        message: "Authorized",
+        success: true,
+        user:req.user,
       });
     } catch (error) {
       console.error(error);

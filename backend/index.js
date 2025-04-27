@@ -5,7 +5,6 @@ import authRoutes from './routes/auth.routes.js';
 
 dotenv.config();
 
-
 const app = express();
 
 app.use(express.json());
@@ -14,16 +13,12 @@ app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
     res.send('welcome to code lab 🔥');
-})
+});
 
-app.use('/api/v1/auth', authRoutes )
+app.use('/api/v1/auth', authRoutes);
 
-
-
-
-
-app.listen (process.env.PORT, () => {
+app.listen(process.env.PORT, () => {
     console.log(`Server is running on port ${process.env.PORT}`);
-})
+});
 
 
