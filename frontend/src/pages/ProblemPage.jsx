@@ -32,9 +32,8 @@ const ProblemPage = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [testCases, setTestCases] = useState([]);
 
-  const {executeCode , submission , isExecuting} = useExecutionStore()
+  const { executeCode, submission, isExecuting } = useExecutionStore();
 
-  const submissionCount = 10;
   useEffect(() => {
     getProblemById(id);
   }, [id]);
@@ -58,54 +57,62 @@ const ProblemPage = () => {
     setCode(problem.codeSnippets?.[lang] || "");
   };
 
+  const handleRunCode = (e) => {
+    e.preventDefault();
+    try {
+      const language_id = getLanguageId(selectedLanguage);
+      const stdin = problem.testcases.map((tc) => tc.input);
+      const expected_outputs = problem.testcases.map((tc) => tc.output);
+      executeCode(code, language_id, stdin, expected_outputs, id);
+    } catch (error) {
+      console.log("Error executing code", error);
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "description":
         return (
           <div className="prose max-w-none">
             <p className="text-lg mb-6">{problem.description}</p>
-
             {problem.examples && (
               <>
                 <h3 className="text-xl font-bold mb-4">Examples:</h3>
-                {Object.entries(problem.examples).map(
-                  ([lang, example], idx) => (
-                    <div
-                      key={lang}
-                      className="bg-base-200 p-6 rounded-xl mb-6 font-mono"
-                    >
-                      <div className="mb-4">
-                        <div className="text-indigo-300 mb-2 text-base font-semibold">
-                          Input:
-                        </div>
-                        <span className="bg-black/90 px-4 py-1 rounded-lg font-semibold text-white">
-                          {example.input}
-                        </span>
+                {Object.entries(problem.examples).map(([lang, example], idx) => (
+                  <div
+                    key={lang}
+                    className="bg-base-200 p-6 rounded-xl mb-6 font-mono"
+                  >
+                    <div className="mb-4">
+                      <div className="text-indigo-300 mb-2 text-base font-semibold">
+                        Input:
                       </div>
-                      <div className="mb-4">
-                        <div className="text-indigo-300 mb-2 text-base font-semibold">
-                          Output:
-                        </div>
-                        <span className="bg-black/90 px-4 py-1 rounded-lg font-semibold text-white">
-                          {example.output}
-                        </span>
-                      </div>
-                      {example.explanation && (
-                        <div>
-                          <div className="text-emerald-300 mb-2 text-base font-semibold">
-                            Explanation:
-                          </div>
-                          <p className="text-base-content/70 text-lg font-sem">
-                            {example.explanation}
-                          </p>
-                        </div>
-                      )}
+                      <span className="bg-black/90 px-4 py-1 rounded-lg font-semibold text-white">
+                        {example.input}
+                      </span>
                     </div>
-                  )
-                )}
+                    <div className="mb-4">
+                      <div className="text-indigo-300 mb-2 text-base font-semibold">
+                        Output:
+                      </div>
+                      <span className="bg-black/90 px-4 py-1 rounded-lg font-semibold text-white">
+                        {example.output}
+                      </span>
+                    </div>
+                    {example.explanation && (
+                      <div>
+                        <div className="text-emerald-300 mb-2 text-base font-semibold">
+                          Explanation:
+                        </div>
+                        <p className="text-base-content/70 text-lg font-sem">
+                          {example.explanation}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </>
             )}
-
             {problem.constraints && (
               <>
                 <h3 className="text-xl font-bold mb-4">Constraints:</h3>
@@ -119,18 +126,9 @@ const ProblemPage = () => {
           </div>
         );
       case "submissions":
-        return (
-          <div className="p-4 text-center text-base-content/70">
-            No Submisssion
-          </div>
-        );
-      // return <SubmissionsList submissions={submissions} isLoading={isSubmissionsLoading} />;
+        return <div className="p-4 text-center text-base-content/70">No Submission</div>;
       case "discussion":
-        return (
-          <div className="p-4 text-center text-base-content/70">
-            No discussions yet
-          </div>
-        );
+        return <div className="p-4 text-center text-base-content/70">No discussions yet</div>;
       case "hints":
         return (
           <div className="p-4">
@@ -141,9 +139,7 @@ const ProblemPage = () => {
                 </span>
               </div>
             ) : (
-              <div className="text-center text-base-content/70">
-                No hints available
-              </div>
+              <div className="text-center text-base-content/70">No hints available</div>
             )}
           </div>
         );
@@ -152,23 +148,19 @@ const ProblemPage = () => {
     }
   };
 
-  const handleRunCode = (e)=>{
-    e.preventDefault()
-    try {
-        const language_id = getLanguageId(selectedLanguage);
-        const stdin = problem.testcases.map((tc)=>tc.input);
-          const expected_outputs = problem.testcases.map((tc) => tc.output);
-          executeCode(code , language_id , stdin , expected_outputs , id)
-    } catch (error) {
-        console.log("Error executing code" , error)
-    }
+  if (isProblemLoading || !problem) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <span className="loading loading-dots loading-lg text-primary"></span>
+      </div>
+    );
   }
 
   return (
-     <div className="min-h-screen bg-gradient-to-br from-base-300 to-base-200 max-w-7xl w-full">
+    <div className="min-h-screen bg-gradient-to-br from-base-300 to-base-200 max-w-7xl w-full">
       <nav className="navbar bg-base-100 shadow-lg px-4">
         <div className="flex-1 gap-2 container items-center">
-          <Link to={'/'} className="flex items-center gap-2 text-primary">
+          <Link to={"/"} className="flex items-center gap-2 text-primary">
             <Home className="w-6 h-6" />
             <ChevronRight className="w-4 h-4" />
           </Link>
@@ -176,14 +168,17 @@ const ProblemPage = () => {
             <h1 className="text-xl font-bold">{problem.title}</h1>
             <div className="flex items-center gap-2 text-sm text-base-content/70 mt-5">
               <Clock className="w-4 h-4" />
-              <span>Updated {new Date(problem.createdAt).toLocaleString("en-US", {
+              <span>
+                Updated{" "}
+                {new Date(problem.createdAt).toLocaleString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
-                })}</span>
+                })}
+              </span>
               <span className="text-base-content/30">•</span>
               <Users className="w-4 h-4" />
-              <span>{10} Submissions</span>
+              <span>10 Submissions</span>
               <span className="text-base-content/30">•</span>
               <ThumbsUp className="w-4 h-4" />
               <span>95% Success Rate</span>
@@ -191,8 +186,8 @@ const ProblemPage = () => {
           </div>
         </div>
         <div className="flex-none gap-4">
-          <button 
-            className={`btn btn-ghost btn-circle ${isBookmarked ? 'text-primary' : ''}`}
+          <button
+            className={`btn btn-ghost btn-circle ${isBookmarked ? "text-primary" : ""}`}
             onClick={() => setIsBookmarked(!isBookmarked)}
           >
             <Bookmark className="w-5 h-5" />
@@ -200,7 +195,7 @@ const ProblemPage = () => {
           <button className="btn btn-ghost btn-circle">
             <Share2 className="w-5 h-5" />
           </button>
-          <select 
+          <select
             className="select select-bordered select-primary w-40"
             value={selectedLanguage}
             onChange={handleLanguageChange}
@@ -216,6 +211,7 @@ const ProblemPage = () => {
 
       <div className="container mx-auto p-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column */}
           <div className="card bg-base-100 shadow-xl">
             <div className="card-body p-0">
               <div className="tabs tabs-bordered">
@@ -248,13 +244,11 @@ const ProblemPage = () => {
                   Hints
                 </button>
               </div>
-
-              <div className="p-6">
-                {renderTabContent()}
-              </div>
+              <div className="p-6">{renderTabContent()}</div>
             </div>
           </div>
 
+          {/* Right Column - Editor */}
           <div className="card bg-base-100 shadow-xl">
             <div className="card-body p-0">
               <div className="tabs tabs-bordered">
@@ -263,50 +257,46 @@ const ProblemPage = () => {
                   Code Editor
                 </button>
               </div>
-              
               <div className="h-[600px] w-full">
                 <Editor
                   height="100%"
                   language={selectedLanguage.toLowerCase()}
                   theme="vs-dark"
                   value={code}
-                  onChange={(value) => setCode(value || '')}
+                  onChange={(value) => setCode(value || "")}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 22,
-                    lineNumbers: 'on',
+                    lineNumbers: "on",
                     roundedSelection: false,
                     scrollBeyondLastLine: false,
                     readOnly: false,
                     automaticLayout: true,
-                    
                   }}
                 />
               </div>
-
               <div className="p-4 border-t border-base-300 bg-base-200">
                 <div className="flex justify-between items-center">
-                  <button 
-                    className={`btn btn-primary gap-2 ${isExecuting ? "loading" : ""} `}
+                  <button
+                    className={`btn btn-primary gap-2 ${isExecuting ? "loading" : ""}`}
                     onClick={handleRunCode}
                     disabled={isExecuting}
                   >
-                        {!isExecuting && <Play className="w-4 h-4" />}
+                    {!isExecuting && <Play className="w-4 h-4" />}
                     Run Code
                   </button>
-                  <button className="btn btn-success gap-2">
-                    Submit Solution
-                  </button>
+                  <button className="btn btn-success gap-2">Submit Solution</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Test Cases or Submission */}
         <div className="card bg-base-100 shadow-xl mt-6">
           <div className="card-body">
             {submission ? (
-              <SubmissionResults submission={submission}/>
+              <SubmissionResults submission={submission} />
             ) : (
               <>
                 <div className="flex items-center justify-between mb-6">

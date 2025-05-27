@@ -1,8 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { useAuthStore } from "../store/userAAuth";
 import { Link } from "react-router-dom";
-
-import { Bookmark, PencilIcon, Trash, TrashIcon, Plus } from "lucide-react";
+import {
+  Bookmark,
+  PencilIcon,
+  TrashIcon,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 const ProblemTable = ({ problems }) => {
   const { authUser } = useAuthStore();
@@ -12,62 +18,73 @@ const ProblemTable = ({ problems }) => {
   const [selectedTag, setSelectedTag] = useState("ALL");
   const [currentPage, setCurrentPage] = useState(1);
 
+  const difficulties = ["EASY", "MEDIUM", "HARD"];
+  const itemsPerPage = 5;
+
+  // ✅ Extract unique tags
   const allTags = useMemo(() => {
     if (!Array.isArray(problems)) return [];
-
     const tagsSet = new Set();
-
     problems.forEach((p) => p.tags?.forEach((t) => tagsSet.add(t)));
-
     return Array.from(tagsSet);
   }, [problems]);
 
-
-  const filteredProblems = useMemo(()=>{
+  // ✅ Filter problems
+  const filteredProblems = useMemo(() => {
     return (problems || [])
-    .filter((problem)=> problem.title.toLowerCase().includes(search.toLowerCase()))
-    .filter((problem)=>difficulty === "ALL" ? true: problem.difficulty === difficulty)
-     .filter((problem) =>
+      .filter((problem) =>
+        problem.title.toLowerCase().includes(search.toLowerCase())
+      )
+      .filter((problem) =>
+        difficulty === "ALL" ? true : problem.difficulty === difficulty
+      )
+      .filter((problem) =>
         selectedTag === "ALL" ? true : problem.tags?.includes(selectedTag)
       );
-  },[problems , search , difficulty , selectedTag])
+  }, [problems, search, difficulty, selectedTag]);
 
-  const itemsPerPage = 5;
+  // ✅ Pagination logic
   const totalPages = Math.ceil(filteredProblems.length / itemsPerPage);
   const paginatedProblems = useMemo(() => {
     return filteredProblems.slice(
-      (currentPage - 1) * itemsPerPage, // 1 * 5 = 5 ( starting index = 0)
-      currentPage * itemsPerPage // 1 * 5  = (0 , 10)
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
     );
   }, [filteredProblems, currentPage]);
 
+  const handleDelete = (id) => {
+    console.log("Delete problem:", id);
+    // TODO: call delete API
+  };
 
-  const difficulties = ["EASY", "MEDIUM", "HARD"];
-
-  const handleDelete = (id)=>{}
-
-  const handleAddToPlaylist = (id)=>{}
+  const handleAddToPlaylist = (id) => {
+    console.log("Add to playlist:", id);
+    // TODO: integrate with playlist API
+  };
 
   return (
-    <div className="w-full max-w-6xl mx-auto mt-10">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Problems</h2>
-        <button className="btn btn-primary gap-2" onClick={() => {}}>
+    <div className="w-full max-w-6xl mx-auto mt-10 px-2 md:px-0">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+        <h2 className="text-3xl font-bold">Problems</h2>
+        <button className="btn btn-primary gap-2">
           <Plus className="w-4 h-4" />
           Create Playlist
         </button>
       </div>
 
-      <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+      {/* Filters */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <input
           type="text"
           placeholder="Search by title"
-          className="input input-bordered w-full md:w-1/3 bg-base-200"
+          className="input input-bordered w-full bg-base-200"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+
         <select
-          className="select select-bordered bg-base-200"
+          className="select select-bordered bg-base-200 w-full"
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value)}
         >
@@ -78,8 +95,9 @@ const ProblemTable = ({ problems }) => {
             </option>
           ))}
         </select>
+
         <select
-          className="select select-bordered bg-base-200"
+          className="select select-bordered bg-base-200 w-full"
           value={selectedTag}
           onChange={(e) => setSelectedTag(e.target.value)}
         >
@@ -92,24 +110,25 @@ const ProblemTable = ({ problems }) => {
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-xl shadow-md">
-        <table className="table table-zebra table-lg bg-base-200 text-base-content">
+      {/* Table */}
+      <div className="overflow-x-auto shadow-lg rounded-lg">
+        <table className="table table-zebra bg-base-100 text-base-content">
           <thead className="bg-base-200">
             <tr>
               <th>Solved</th>
               <th>Title</th>
               <th>Tags</th>
               <th>Difficulty</th>
-              <th>Actions</th>
+              <th className="text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
-{
-    paginatedProblems.length > 0 ? (
-          paginatedProblems.map((problem)=>{
-            const isSolved = problem.solvedBy.some((user)=>user.userId === authUser?.id);
+            {paginatedProblems.length > 0 ? (
+              paginatedProblems.map((problem) => {
+                const isSolved = Array.isArray(problem.solvedBy) &&
+                  problem.solvedBy.some((user) => user.userId === authUser?.id);
 
-               return (
+                return (
                   <tr key={problem.id}>
                     <td>
                       <input
@@ -120,7 +139,10 @@ const ProblemTable = ({ problems }) => {
                       />
                     </td>
                     <td>
-                      <Link to={`/problem/${problem.id}`} className="font-semibold hover:underline">
+                      <Link
+                        to={`/problem/${problem.id}`}
+                        className="font-semibold text-primary hover:underline"
+                      >
                         {problem.title}
                       </Link>
                     </td>
@@ -129,7 +151,7 @@ const ProblemTable = ({ problems }) => {
                         {(problem.tags || []).map((tag, idx) => (
                           <span
                             key={idx}
-                            className="badge badge-outline badge-warning text-xs font-bold"
+                            className="badge badge-sm badge-outline badge-warning text-xs font-medium"
                           >
                             {tag}
                           </span>
@@ -138,7 +160,7 @@ const ProblemTable = ({ problems }) => {
                     </td>
                     <td>
                       <span
-                        className={`badge font-semibold text-xs text-white ${
+                        className={`badge badge-sm font-bold text-white ${
                           problem.difficulty === "EASY"
                             ? "badge-success"
                             : problem.difficulty === "MEDIUM"
@@ -150,63 +172,72 @@ const ProblemTable = ({ problems }) => {
                       </span>
                     </td>
                     <td>
-                      <div className="flex flex-col md:flex-row gap-2 items-start md:items-center">
+                      <div className="flex flex-col sm:flex-row justify-center gap-2">
                         {authUser?.role === "ADMIN" && (
-                          <div className="flex gap-2">
+                          <>
                             <button
                               onClick={() => handleDelete(problem.id)}
                               className="btn btn-sm btn-error"
                             >
                               <TrashIcon className="w-4 h-4 text-white" />
                             </button>
-                            <button disabled className="btn btn-sm btn-warning">
+                            <button
+                              disabled
+                              className="btn btn-sm btn-warning"
+                            >
                               <PencilIcon className="w-4 h-4 text-white" />
                             </button>
-                          </div>
+                          </>
                         )}
                         <button
-                          className="btn btn-sm btn-outline flex gap-2 items-center"
+                          className="btn btn-sm btn-outline"
                           onClick={() => handleAddToPlaylist(problem.id)}
                         >
                           <Bookmark className="w-4 h-4" />
-                          <span className="hidden sm:inline">Save to Playlist</span>
+                          <span className="hidden sm:inline">
+                            Save to Playlist
+                          </span>
                         </button>
                       </div>
                     </td>
                   </tr>
                 );
-
-          })
-    ) : ( <tr>
+              })
+            ) : (
+              <tr>
                 <td colSpan={5} className="text-center py-6 text-gray-500">
                   No problems found.
                 </td>
-              </tr>)
-}
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-  {/*  */}
-  <div className="flex justify-center mt-6 gap-2">
-<button
-className="btn btn-sm"
-disabled={currentPage === 1}
-onClick={()=>setCurrentPage((prev)=>prev-1)}
->
-Prev
-</button>
-    <span className="btn btn-ghost btn-sm">
-          {currentPage} / {totalPages}
-        </span>
- <button
-className="btn btn-sm"
-disabled={currentPage === totalPages}
-onClick={()=>setCurrentPage((prev)=>prev+1)}
->
-Next
-</button>
-  </div>
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex justify-center mt-6 gap-2">
+          <button
+            className="btn btn-sm btn-outline"
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((prev) => prev - 1)}
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Prev
+          </button>
+          <span className="btn btn-ghost btn-sm">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            className="btn btn-sm btn-outline"
+            disabled={currentPage === totalPages}
+            onClick={() => setCurrentPage((prev) => prev + 1)}
+          >
+            Next
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

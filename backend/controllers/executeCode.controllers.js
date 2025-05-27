@@ -13,7 +13,6 @@ export const executeCode = async (req, res) => {
     const userId = req.user.id;
 
     // Validate test cases
-
     if (
       !Array.isArray(stdin) ||
       stdin.length === 0 ||
@@ -23,25 +22,17 @@ export const executeCode = async (req, res) => {
       return res.status(400).json({ error: "Invalid or Missing test cases" });
     }
 
-    // 2. Prepare each test cases for judge0 batch submission
+    // Prepare submissions for Judge0
     const submissions = stdin.map((input) => ({
       source_code,
       language_id,
       stdin: input,
     }));
 
-    // 3. Send batch of submissions to judge0
     const submitResponse = await submitBatch(submissions);
-
     const tokens = submitResponse.map((res) => res.token);
-
-    // 4. Poll judge0 for results of all submitted test cases
     const results = await pollBatchResults(tokens);
 
-    console.log("Result-------------");
-    console.log(results);
-
-    //  Analyze test case results
     let allPassed = true;
     const detailedResults = results.map((result, i) => {
       const stdout = result.stdout?.trim();
@@ -51,28 +42,18 @@ export const executeCode = async (req, res) => {
       if (!passed) allPassed = false;
 
       return {
-        testCase: i + 1,
+        input: stdin[i],
+        output: stdout,
+        expectedOutput: expected_output,
         passed,
-        stdout,
-        expected: expected_output,
+        status: passed ? "Passed" : "Failed",
         stderr: result.stderr || null,
         compile_output: result.compile_output || null,
-        status: result.status.description,
-        memory: result.memory ? `${result.memory} KB` : undefined,
-        time: result.time ? `${result.time} s` : undefined,
+        memory: result.memory ? `${result.memory} KB` : null,
+        time: result.time ? `${result.time} s` : null,
       };
-
-      // console.log(`Testcase #${i+1}`);
-      // console.log(`Input for testcase #${i+1}: ${stdin[i]}`)
-      // console.log(`Expected Output for testcase #${i+1}: ${expected_output}`)
-      // console.log(`Actual output for testcase #${i+1}: ${stdout}`)
-
-      // console.log(`Matched testcase #${i+1}: ${passed}`)
     });
 
-    console.log(detailedResults);
-
-    // store submission summary
     const submission = await prisma.submission.create({
       data: {
         userId,
@@ -80,7 +61,7 @@ export const executeCode = async (req, res) => {
         sourceCode: source_code,
         language: getLanguageName(language_id),
         stdin: stdin.join("\n"),
-        stdout: JSON.stringify(detailedResults.map((r) => r.stdout)),
+        stdout: JSON.stringify(detailedResults.map((r) => r.output)),
         stderr: detailedResults.some((r) => r.stderr)
           ? JSON.stringify(detailedResults.map((r) => r.stderr))
           : null,
@@ -97,7 +78,7 @@ export const executeCode = async (req, res) => {
       },
     });
 
-    // If All passed = true mark problem as solved for the current user
+    // Save to problemSolved if passed
     if (allPassed) {
       await prisma.problemSolved.upsert({
         where: {
@@ -113,19 +94,14 @@ export const executeCode = async (req, res) => {
         },
       });
     }
-    // 8. Save individual test case results  using detailedResult
 
+    // Save test case results
     const testCaseResults = detailedResults.map((result) => ({
       submissionId: submission.id,
-      testCase: result.testCase,
-      passed: result.passed,
-      stdout: result.stdout,
-      expected: result.expected,
-      stderr: result.stderr,
-      compileOutput: result.compile_output,
+      input: result.input,
+      output: result.output,
+      expectedOutput: result.expectedOutput,
       status: result.status,
-      memory: result.memory,
-      time: result.time,
     }));
 
     await prisma.testCaseResult.createMany({
@@ -140,7 +116,7 @@ export const executeCode = async (req, res) => {
         testCases: true,
       },
     });
-    //
+
     res.status(200).json({
       success: true,
       message: "Code Executed! Successfully!",
