@@ -20,7 +20,7 @@ import {
 
 import { useProblemStore } from "../store/userProblemstore";
 import { useExecutionStore } from "../store/useexecutionstore";
-import { getLanguageId } from "../utils/Lang";
+import { getLanguageId } from "../utils/Lang.js";
 import SubmissionResults from "../components/Submmision";
 
 const ProblemPage = () => {

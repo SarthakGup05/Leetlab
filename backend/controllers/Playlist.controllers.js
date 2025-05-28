@@ -2,32 +2,33 @@ import { prisma } from "../libs/db.js";
 
 export const createPlaylist = async (req, res) => {
   try {
-    const { name, description } = req.body;
+    // console.log("Request body:", req.body);
+    if (!req.body) {
+      return res.status(400).json({ message: "Request body is missing." });
+    }
 
-    const userId = req.user.id;
+    const { name, description, userId } = req.body;
 
-    const playList = await prisma.playlist.create({
-      data: {
-        name,
-        description,
-        userId,
-      },
+    if (!name || !description || !userId) {
+      return res.status(400).json({ message: "Name, description, and userId are required." });
+    }
+
+    const newPlaylist = await prisma.playlist.create({
+      data: { name, description, userId },
     });
 
-    res.status(200).json({
-      success: true,
-      message: "Playlist created successfully",
-      playList,
-    });
+    res.status(201).json(newPlaylist);
   } catch (error) {
     console.error("Error creating playlist:", error);
-    res.status(500).json({ error: "Failed to create playlist" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
+
+
 export const getAllListDetails = async (req, res) => {
   try {
-    const playlists = await Prisma.playlist.findMany({
+    const playlists = await prisma.playlist.findMany({
       where: {
         userId: req.user.id,
       },
